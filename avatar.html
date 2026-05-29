@@ -27,16 +27,37 @@
     }
 
     #videoContainer {
-      height: 600px;
-      width: 100%;
-      overflow: hidden;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      background: #000;
-      box-sizing: border-box;
-      margin-bottom: 20px;
-    }
+  position: relative;
+  height: 600px;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background: #000;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+}
 
+    #startBtn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+
+  padding: 16px 32px;
+  font-size: 20px;
+  font-weight: bold;
+
+  border: none;
+  border-radius: 10px;
+
+  background: white;
+  cursor: pointer;
+
+  box-shadow: 0 4px 12px rgba(0,0,0,.25);
+}
+    
     #avatar {
   width: 100%;
   height: 600px;
@@ -58,12 +79,12 @@
 
       <div id="status">Click the button to start.</div>
 
-<button id="startBtn" style="margin-bottom:20px; padding:10px 16px; font-size:16px;">
-  Start conversation
-</button>
-
 <div id="videoContainer">
   <video id="avatar" autoplay playsinline></video>
+
+  <button id="startBtn">
+    Start conversation
+  </button>
 </div>
 
       <div id="hiddenTranscript"></div>
