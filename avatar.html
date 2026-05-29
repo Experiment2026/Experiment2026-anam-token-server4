@@ -200,13 +200,21 @@
           }
         );
 
-        await client.streamToVideoElement("avatar");
+       await client.streamToVideoElement("avatar");
 
-        const avatar = document.getElementById("avatar");
-        avatar.muted = false;
-        avatar.volume = 1;
+const avatar = document.getElementById("avatar");
 
-        setStatus("Connected");
+console.log("Avatar element:", avatar);
+console.log("Video srcObject:", avatar.srcObject);
+console.log("Video readyState:", avatar.readyState);
+console.log("Video dimensions:", avatar.videoWidth, avatar.videoHeight);
+
+avatar.muted = false;
+avatar.volume = 1;
+
+await avatar.play();
+
+setStatus("Connected");
       } catch (error) {
         console.error(error);
         setStatus("Error: " + error.message);
