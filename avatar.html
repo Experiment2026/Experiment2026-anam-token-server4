@@ -189,13 +189,18 @@ const startBtn = document.getElementById("startBtn");
     }
 
     async function startSession() {
-      try {
-        setStatus("Creating session...");
+  try {
+    setStatus("Requesting microphone access...");
 
-        const response = await fetch(
-          "https://anam-token-server-1.onrender.com/api/session-token",
-          { method: "POST" }
-        );
+    const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micStream.getTracks().forEach(track => track.stop());
+
+    setStatus("Creating session...");
+
+    const response = await fetch(
+      "https://anam-token-server-1.onrender.com/api/session-token",
+      { method: "POST" }
+    );
 
         const data = await response.json();
 
