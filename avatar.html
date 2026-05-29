@@ -56,11 +56,15 @@
     <div class="card">
       <h2>Chat Assistant</h2>
 
-      <div id="status">Connecting...</div>
+      <div id="status">Click the button to start.</div>
 
-      <div id="videoContainer">
-        <video id="avatar" autoplay playsinline></video>
-      </div>
+<button id="startBtn" style="margin-bottom:20px; padding:10px 16px; font-size:16px;">
+  Start conversation
+</button>
+
+<div id="videoContainer">
+  <video id="avatar" autoplay playsinline></video>
+</div>
 
       <div id="hiddenTranscript"></div>
     </div>
@@ -81,7 +85,8 @@
 
     const statusEl = document.getElementById("status");
     const hiddenTranscript = document.getElementById("hiddenTranscript");
-
+const startBtn = document.getElementById("startBtn");
+    
     function setStatus(text) {
       statusEl.textContent = text;
     }
@@ -212,8 +217,6 @@ console.log("Video dimensions:", avatar.videoWidth, avatar.videoHeight);
 avatar.muted = false;
 avatar.volume = 1;
 
-await avatar.play();
-
 setStatus("Connected");
       } catch (error) {
         console.error(error);
@@ -221,7 +224,10 @@ setStatus("Connected");
       }
     }
 
-    startSession();
+    startBtn.addEventListener("click", async () => {
+  startBtn.style.display = "none";
+  await startSession();
+});
   </script>
 </body>
 </html>
