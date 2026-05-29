@@ -42,6 +42,7 @@
       height: 100%;
       object-fit: cover;
       display: block;
+      background: #f7f7f7;
     }
 
     #hiddenTranscript {
@@ -199,14 +200,13 @@
           }
         );
 
+        await client.streamToVideoElement("avatar");
+
         const avatar = document.getElementById("avatar");
+        avatar.muted = false;
+        avatar.volume = 1;
 
-await client.streamToVideoElement(avatar);
-
-avatar.muted = false;
-avatar.volume = 1;
-
-setStatus("Connected");
+        setStatus("Connected");
       } catch (error) {
         console.error(error);
         setStatus("Error: " + error.message);
