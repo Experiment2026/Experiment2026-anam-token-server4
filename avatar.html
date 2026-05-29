@@ -58,7 +58,7 @@
       <div id="status">Connecting...</div>
 
       <div id="videoContainer">
-        <video id="avatar" autoplay playsinline muted></video>
+        <video id="avatar" autoplay playsinline></video>
       </div>
 
       <div id="hiddenTranscript"></div>
@@ -199,13 +199,14 @@
           }
         );
 
-        await client.streamToVideoElement("avatar");
-
         const avatar = document.getElementById("avatar");
-        avatar.muted = false;
-        avatar.volume = 1;
 
-        setStatus("Connected");
+await client.streamToVideoElement(avatar);
+
+avatar.muted = false;
+avatar.volume = 1;
+
+setStatus("Connected");
       } catch (error) {
         console.error(error);
         setStatus("Error: " + error.message);
