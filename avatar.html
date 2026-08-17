@@ -32,7 +32,12 @@
     }
 
     #status {
-      margin-bottom: 10px;
+      margin-bottom: 16px;
+    }
+
+    #instruction {
+      margin-bottom: 16px;
+      font-style: italic;
     }
 
     #videoContainer {
@@ -80,6 +85,28 @@
       background: #000;
     }
 
+    #finishBtn {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 12px 20px;
+
+      font-size: 16px;
+      font-weight: bold;
+
+      border: none;
+      border-radius: 8px;
+
+      background: #222;
+      color: white;
+
+      cursor: pointer;
+    }
+
+    #finishBtn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
     #hiddenTranscript {
       display: none;
     }
@@ -89,13 +116,21 @@
 <body>
   <div class="wrap">
     <div class="card">
+
       <h2>Chat Assistant</h2>
 
       <div id="status">
-        Click the button to start.
+        Click the <strong>"Start conversation"</strong> button to start.
+      </div>
+
+      <div id="instruction">
+        Once you have finished your conversation, click the
+        <strong>"Finish conversation and return to survey"</strong>
+        button at the bottom to return to the survey.
       </div>
 
       <div id="videoContainer">
+
         <video
           id="avatar"
           autoplay
@@ -105,48 +140,74 @@
         <button id="startBtn">
           Start conversation
         </button>
+
       </div>
 
+      <button id="finishBtn" disabled>
+        Finish conversation and return to survey
+      </button>
+
       <div id="hiddenTranscript"></div>
+
     </div>
   </div>
 
+
   <script type="module">
+
     import {
       createClient,
       AnamEvent
     } from "https://esm.sh/@anam-ai/js-sdk";
 
+
     /*
-      Condition 4:
+      CONDITION 4:
       Video interface + speech input
     */
     const CONDITION =
       "interface_video_input_speech";
 
+
     /*
-      Shared backend used by all four experimental conditions.
+      Shared backend used by all four
+      experimental conditions.
     */
     const API_BASE_URL =
       "https://anam-token-server-1.onrender.com";
 
+
     let client = null;
+
     let transcript = [];
 
-    /*
-      The participant receives their ID in Qualtrics.
 
-      The chatbot asks for this ID in its greeting, and the
-      participant says it as their first spoken response.
+    /*
+      Participant ID.
+
+      The participant receives their ID in Qualtrics
+      and says it as their first spoken response.
     */
     let participantId = null;
+
     let firstUserMessage = true;
 
+
+    /*
+      Speech transcript buffers.
+    */
     let userBuffer = "";
+
     let assistantBuffer = "";
 
+
+    /*
+      Elements
+    */
     const statusEl =
-      document.getElementById("status");
+      document.getElementById(
+        "status"
+      );
 
     const hiddenTranscript =
       document.getElementById(
@@ -154,449 +215,904 @@
       );
 
     const startBtn =
-      document.getElementById("startBtn");
+      document.getElementById(
+        "startBtn"
+      );
+
+    const finishBtn =
+      document.getElementById(
+        "finishBtn"
+      );
 
     const avatar =
-      document.getElementById("avatar");
+      document.getElementById(
+        "avatar"
+      );
 
+
+    /*
+      Normal status text.
+    */
     function setStatus(text) {
-      statusEl.textContent = text;
+
+      statusEl.textContent =
+        text;
+
     }
 
+
+    /*
+      Connected status shown in bold.
+    */
+    function setConnectedStatus() {
+
+      statusEl.innerHTML =
+        "<strong>Connected</strong>";
+
+    }
+
+
+    /*
+      ================================
+      PARTICIPANT ID EXTRACTION
+      ================================
+    */
+
     function extractParticipantId(text) {
+
       const trimmedText =
         String(text).trim();
 
+
       if (!trimmedText) {
+
         return null;
+
       }
 
+
       /*
-        First look for a conventional ID containing letters
-        and numbers, such as P014 or ABC123.
+        First look for a conventional ID
+        containing letters and numbers,
+        such as P014 or ABC123.
       */
       const directMatch =
         trimmedText.match(
           /\b[A-Za-z]+[-_]?\d+[A-Za-z0-9_-]*\b/i
         );
 
+
       if (directMatch) {
+
         return directMatch[0]
+
           .replace(
             /[^A-Za-z0-9_-]/g,
             ""
           )
-          .slice(0, 100);
+
+          .slice(
+            0,
+            100
+          );
+
       }
 
+
       /*
-        Otherwise inspect the individual words and tokens.
+        Otherwise inspect individual words
+        and ID-like tokens.
       */
       const candidates =
         trimmedText.match(
           /[A-Za-z0-9_-]+/g
         );
 
+
       if (
         !candidates ||
         candidates.length === 0
       ) {
+
         return null;
+
       }
+
 
       const likelyIds =
         candidates.filter(
           (candidate) =>
-            /[0-9_-]/.test(candidate)
+            /[0-9_-]/.test(
+              candidate
+            )
         );
+
 
       const selectedId =
         likelyIds.length > 0
+
           ? likelyIds[
               likelyIds.length - 1
             ]
+
           : candidates[
               candidates.length - 1
             ];
 
+
       const cleanedId =
         selectedId
+
           .trim()
+
           .replace(
             /[^A-Za-z0-9_-]/g,
             ""
           )
-          .slice(0, 100);
+
+          .slice(
+            0,
+            100
+          );
+
 
       return cleanedId || null;
+
     }
+
+
+    /*
+      ================================
+      HIDDEN TRANSCRIPT
+      ================================
+
+      Not visible to participants.
+    */
 
     function appendHiddenTranscript(
       role,
       text
     ) {
+
       const row =
-        document.createElement("p");
+        document.createElement(
+          "p"
+        );
+
 
       const label =
-        document.createElement("b");
+        document.createElement(
+          "b"
+        );
+
 
       label.textContent =
         `${role}: `;
 
+
       const messageText =
-        document.createElement("span");
+        document.createElement(
+          "span"
+        );
 
-      messageText.textContent = text;
 
-      row.appendChild(label);
-      row.appendChild(messageText);
+      messageText.textContent =
+        text;
 
-      hiddenTranscript.appendChild(row);
+
+      row.appendChild(
+        label
+      );
+
+
+      row.appendChild(
+        messageText
+      );
+
+
+      hiddenTranscript.appendChild(
+        row
+      );
+
     }
 
+
+    /*
+      ================================
+      TRANSCRIPT SAVING
+      ================================
+    */
+
     async function saveTranscript() {
+
       /*
-        Do not create a database record until the participant ID
-        has been detected.
+        Do not create a database record until
+        the participant ID has been detected.
       */
       if (!participantId) {
+
         console.warn(
           "Transcript not saved because no participant ID has been detected."
         );
 
+
         return;
+
       }
 
+
       try {
+
         const response =
           await fetch(
+
             `${API_BASE_URL}/api/save-transcript`,
+
             {
-              method: "POST",
+
+              method:
+                "POST",
 
               headers: {
+
                 "Content-Type":
                   "application/json"
+
               },
 
-              body: JSON.stringify({
-                participantId:
-                  participantId,
+              body:
+                JSON.stringify({
 
-                condition:
-                  CONDITION,
+                  participantId:
+                    participantId,
 
-                transcript:
-                  transcript
-              })
+                  condition:
+                    CONDITION,
+
+                  transcript:
+                    transcript
+
+                })
+
             }
+
           );
+
 
         let data;
 
+
         try {
+
           data =
             await response.json();
-        } catch (jsonError) {
+
+        } catch (
+          jsonError
+        ) {
+
           throw new Error(
             "The transcript endpoint returned an invalid response."
           );
+
         }
 
+
         if (!response.ok) {
+
           throw new Error(
+
             data.error ||
-              "Transcript save failed."
+
+            "Transcript save failed."
+
           );
+
         }
+
 
         console.log(
           "Transcript saved:",
           data
         );
-      } catch (error) {
+
+
+      } catch (
+        error
+      ) {
+
         console.error(
           "Transcript autosave error:",
           error
         );
 
+
         setStatus(
+
           "Connected, but transcript saving failed: " +
-            (
-              error?.message ||
-              String(error)
-            )
+
+          (
+            error?.message ||
+            String(error)
+          )
+
         );
+
       }
+
     }
 
+
+    /*
+      ================================
+      USER SPEECH TRANSCRIPT
+      ================================
+    */
+
     async function finishUserMessage() {
+
       const finalText =
         userBuffer.trim();
 
+
       if (finalText) {
+
         transcript.push({
-          role: "user",
-          content: finalText,
+
+          role:
+            "user",
+
+          content:
+            finalText,
+
           timestamp:
             new Date().toISOString()
+
         });
+
 
         appendHiddenTranscript(
           "You",
           finalText
         );
 
+
         /*
-          The first completed spoken user message is expected to
-          contain the participant ID supplied through Qualtrics.
+          The first completed spoken user message
+          should contain the participant ID.
         */
-        if (firstUserMessage) {
+        if (
+          firstUserMessage
+        ) {
+
           participantId =
             extractParticipantId(
               finalText
             );
 
-          firstUserMessage = false;
+
+          firstUserMessage =
+            false;
+
 
           if (participantId) {
+
             console.log(
               "Participant ID detected:",
               participantId
             );
+
           } else {
+
             console.warn(
               "No participant ID could be detected from the first spoken response."
             );
+
           }
+
         }
+
       }
 
-      userBuffer = "";
+
+      userBuffer =
+        "";
+
     }
 
+
+    /*
+      ================================
+      ASSISTANT TRANSCRIPT
+      ================================
+    */
+
     async function finishAssistantMessage() {
+
       const finalText =
         assistantBuffer.trim();
 
+
       if (finalText) {
+
         transcript.push({
-          role: "assistant",
-          content: finalText,
+
+          role:
+            "assistant",
+
+          content:
+            finalText,
+
           timestamp:
             new Date().toISOString()
+
         });
+
 
         appendHiddenTranscript(
           "Assistant",
           finalText
         );
 
+
         /*
-          Save the full transcript after each completed assistant
-          response.
+          Save the full transcript after
+          each completed assistant response.
         */
         await saveTranscript();
+
       }
 
-      assistantBuffer = "";
+
+      assistantBuffer =
+        "";
+
     }
 
+
+    /*
+      ================================
+      MICROPHONE ACCESS
+      ================================
+    */
+
     async function requestMicrophoneAccess() {
+
       if (
         !navigator.mediaDevices ||
         !navigator.mediaDevices
           .getUserMedia
       ) {
+
         throw new Error(
           "This browser does not support microphone access."
         );
+
       }
 
+
       const micStream =
-        await navigator.mediaDevices
+        await navigator
+          .mediaDevices
           .getUserMedia({
-            audio: true
+
+            audio:
+              true
+
           });
 
+
       /*
-        The permission check is complete. Anam will create its
-        own microphone stream when the session starts.
+        Permission check complete.
+
+        Anam creates its own microphone
+        stream when the session begins.
       */
       micStream
         .getTracks()
         .forEach(
-          (track) => track.stop()
+          (track) =>
+            track.stop()
         );
+
     }
 
+
+    /*
+      ================================
+      START SESSION
+      ================================
+    */
+
     async function startSession() {
+
       try {
+
         setStatus(
           "Requesting microphone access..."
         );
 
+
         await requestMicrophoneAccess();
+
 
         setStatus(
           "Creating session..."
         );
 
+
         const response =
           await fetch(
+
             `${API_BASE_URL}/api/session-token`,
+
             {
-              method: "POST"
+              method:
+                "POST"
             }
+
           );
+
 
         let data;
 
+
         try {
+
           data =
             await response.json();
-        } catch (jsonError) {
+
+        } catch (
+          jsonError
+        ) {
+
           throw new Error(
             "The session-token endpoint returned an invalid response."
           );
+
         }
 
+
         if (!response.ok) {
+
           console.error(
             "Session-token response:",
             data
           );
 
+
           throw new Error(
+
             data.error ||
-              data.message ||
-              "Failed to get session token."
+
+            data.message ||
+
+            "Failed to get session token."
+
           );
+
         }
 
-        if (!data.sessionToken) {
+
+        if (
+          !data.sessionToken
+        ) {
+
           throw new Error(
             "No session token was returned by the backend."
           );
+
         }
 
-        /*
-          Input audio remains enabled because this condition uses
-          speech input.
-        */
-        client = createClient(
-          data.sessionToken
-        );
 
+        /*
+          Input audio remains enabled
+          because this condition uses speech input.
+        */
+        client =
+          createClient(
+            data.sessionToken
+          );
+
+
+        /*
+          ================================
+          REAL-TIME MESSAGE STREAM
+          ================================
+        */
         client.addListener(
+
           AnamEvent
             .MESSAGE_STREAM_EVENT_RECEIVED,
 
-          async (event) => {
+          async (
+            event
+          ) => {
+
+            /*
+              USER SPEECH
+            */
             if (
-              event.role === "user"
+              event.role ===
+              "user"
             ) {
+
               userBuffer +=
                 event.content || "";
 
-              if (event.endOfSpeech) {
+
+              if (
+                event.endOfSpeech
+              ) {
+
                 await finishUserMessage();
+
               }
+
             }
 
+
+            /*
+              SOPHIE / PERSONA
+            */
             if (
-              event.role === "persona"
+              event.role ===
+              "persona"
             ) {
+
               assistantBuffer +=
                 event.content || "";
 
-              if (event.endOfSpeech) {
+
+              if (
+                event.endOfSpeech
+              ) {
+
                 await finishAssistantMessage();
+
               }
+
             }
+
           }
+
         );
 
+
         /*
-          The Anam SDK expects the video element ID.
+          Start the visible avatar stream.
         */
         await client
           .streamToVideoElement(
             "avatar"
           );
 
-        /*
-          The participant can see and hear the avatar in this
-          condition.
-        */
-        avatar.muted = false;
-        avatar.volume = 1;
 
-        setStatus(
-          "Connected"
-        );
-      } catch (error) {
+        /*
+          Participant can SEE and HEAR Sophie.
+        */
+        avatar.muted =
+          false;
+
+        avatar.volume =
+          1;
+
+
+        /*
+          Bold only once actually connected.
+        */
+        setConnectedStatus();
+
+
+      } catch (
+        error
+      ) {
+
         console.error(
           "Session start error:",
           error
         );
 
+
         setStatus(
+
           "Failed to start session: " +
-            (
-              error?.message ||
-              String(error)
-            )
+
+          (
+            error?.message ||
+            String(error)
+          )
+
         );
 
+
         throw error;
+
       }
+
     }
 
+
+    /*
+      ================================
+      START BUTTON
+      ================================
+    */
+
     startBtn.addEventListener(
+
       "click",
+
       async () => {
+
         try {
+
           startBtn.disabled =
             true;
+
 
           startBtn.textContent =
             "Starting...";
 
+
+          /*
+            Request microphone access and
+            establish the Anam session.
+          */
           await startSession();
 
+
+          /*
+            Hide Start once the connection succeeds.
+          */
           startBtn.style.display =
             "none";
-        } catch (error) {
+
+
+          /*
+            Enable Finish only after
+            successful session startup.
+          */
+          finishBtn.disabled =
+            false;
+
+
+          /*
+            Keep Connected bold.
+          */
+          setConnectedStatus();
+
+
+        } catch (
+          error
+        ) {
+
           console.error(
             "Full start-session error:",
             error
           );
 
+
           startBtn.disabled =
             false;
+
 
           startBtn.textContent =
             "Start conversation";
 
+
           startBtn.style.display =
             "block";
 
+
+          /*
+            Keep Finish disabled if
+            startup fails.
+          */
+          finishBtn.disabled =
+            true;
+
+
           setStatus(
+
             "Failed to start session: " +
-              (
-                error?.message ||
-                String(error)
-              )
+
+            (
+              error?.message ||
+              String(error)
+            )
+
           );
+
         }
+
       }
+
     );
 
-    setStatus(
-      "Click the button to start."
+
+    /*
+      ================================
+      FINISH CONVERSATION BUTTON
+      ================================
+    */
+
+    finishBtn.addEventListener(
+
+      "click",
+
+      async () => {
+
+        try {
+
+          /*
+            Prevent repeated clicks.
+          */
+          finishBtn.disabled =
+            true;
+
+
+          finishBtn.textContent =
+            "Finishing...";
+
+
+          /*
+            Perform one final transcript
+            save if participant ID exists.
+          */
+          if (participantId) {
+
+            setStatus(
+              "Saving your conversation..."
+            );
+
+
+            await saveTranscript();
+
+          }
+
+
+          setStatus(
+            "Returning to the survey..."
+          );
+
+
+          /*
+            Return to previous browser page,
+            i.e. the survey.
+          */
+          window.history.back();
+
+
+        } catch (
+          error
+        ) {
+
+          console.error(
+            "Finish-conversation error:",
+            error
+          );
+
+
+          finishBtn.disabled =
+            false;
+
+
+          finishBtn.textContent =
+            "Finish conversation and return to survey";
+
+
+          setStatus(
+            "The conversation could not be saved. Please try the Finish button again."
+          );
+
+        }
+
+      }
+
     );
+
   </script>
+
 </body>
 </html>
