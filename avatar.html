@@ -177,6 +177,14 @@
       "https://anam-token-server-1.onrender.com";
 
 
+    /*
+      Finish button becomes available five minutes
+      after the conversation has successfully started.
+    */
+    const FINISH_BUTTON_DELAY =
+      5 * 60 * 1000;
+
+
     let client = null;
 
     let transcript = [];
@@ -191,6 +199,12 @@
     let participantId = null;
 
     let firstUserMessage = true;
+
+
+    /*
+      Finish-button timer.
+    */
+    let finishButtonTimer = null;
 
 
     /*
@@ -853,7 +867,7 @@
 
 
             /*
-              SOPHIE / PERSONA
+              ARJUN / PERSONA
             */
             if (
               event.role ===
@@ -889,7 +903,7 @@
 
 
         /*
-          Participant can SEE and HEAR Sophie.
+          Participant can SEE and HEAR Arjun.
         */
         avatar.muted =
           false;
@@ -970,15 +984,39 @@
 
 
           /*
-            Enable Finish only after
-            successful session startup.
+            Keep Finish disabled initially.
+
+            Start the five-minute timer once
+            the conversation has successfully
+            connected.
           */
           finishBtn.disabled =
-            false;
+            true;
+
+
+          finishButtonTimer =
+            setTimeout(
+              () => {
+
+                finishBtn.disabled =
+                  false;
+
+
+                console.log(
+                  "Finish button enabled after five minutes."
+                );
+
+              },
+
+              FINISH_BUTTON_DELAY
+            );
 
 
           /*
             Keep Connected bold.
+
+            Do not enable Finish here:
+            the timer controls that.
           */
           setConnectedStatus();
 
@@ -991,6 +1029,25 @@
             "Full start-session error:",
             error
           );
+
+
+          /*
+            Cancel timer if startup
+            fails after creation.
+          */
+          if (
+            finishButtonTimer
+          ) {
+
+            clearTimeout(
+              finishButtonTimer
+            );
+
+
+            finishButtonTimer =
+              null;
+
+          }
 
 
           startBtn.disabled =
